@@ -152,11 +152,6 @@ enum {
 	SC_CARD_TYPE_AKIS_BASE = 18000,
 	SC_CARD_TYPE_AKIS_GENERIC,
 
-	/* EnterSafe cards */
-	SC_CARD_TYPE_ENTERSAFE_BASE = 19000,
-	SC_CARD_TYPE_ENTERSAFE_3K,
-	SC_CARD_TYPE_ENTERSAFE_FTCOS_PK_01C,
-
 	/* MyEID cards */
 	SC_CARD_TYPE_MYEID_BASE = 20000,
 	SC_CARD_TYPE_MYEID_GENERIC,
@@ -210,7 +205,6 @@ extern sc_card_driver_t *sc_get_muscle_driver(void);
 extern sc_card_driver_t *sc_get_acos5_driver(void);
 extern sc_card_driver_t *sc_get_asepcos_driver(void);
 extern sc_card_driver_t *sc_get_akis_driver(void);
-extern sc_card_driver_t *sc_get_entersafe_driver(void);
 extern sc_card_driver_t *sc_get_rutoken_driver(void);
 extern sc_card_driver_t *sc_get_rtecp_driver(void);
 extern sc_card_driver_t *sc_get_westcos_driver(void);
