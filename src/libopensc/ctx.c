@@ -94,6 +94,10 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 	{ "westcos",	(void *(*)(void)) sc_get_westcos_driver },
 	{ "myeid",      (void *(*)(void)) sc_get_myeid_driver },
 
+#ifdef ENABLE_OPENSSL
+	{ "entersafe",	(void *(*)(void)) sc_get_entersafe_driver },
+#endif
+
 /* Here should be placed drivers that need some APDU transactions to
  * recognise its cards. */
 	{ "setcos",	(void *(*)(void)) sc_get_setcos_driver },
