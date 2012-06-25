@@ -33,12 +33,12 @@ libopensc_la_SOURCES = \
 	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
 	card-cardos.c card-tcos.c card-default.c \
 	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
-	card-oberthur.c card-belpic.c card-atrust-acos.c card-entersafe.c \
+	card-oberthur.c card-belpic.c card-atrust-acos.c \
 	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
 	card-asepcos.c card-akis.c card-gemsafeV1.c card-rutoken.c \
 	card-rtecp.c card-westcos.c card-myeid.c card-ias.c \
 	card-javacard.c card-itacns.c card-authentic.c \
-	card-iasecc.c iasecc-sdo.c \
+	card-iasecc.c iasecc-sdo.c card-entersafe.c \
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
 	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
