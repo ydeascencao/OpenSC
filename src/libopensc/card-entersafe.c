@@ -382,6 +382,152 @@ static int entersafe_update_binary(sc_card_t *card,
 	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, count);
 }
 
+
+static int entersafe_restore_security_env(sc_card_t *card, int se_num)
+{
+	 SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+	 return SC_SUCCESS;
+}
+
+static int entersafe_internal_set_security_env(sc_card_t *card,
+											   const sc_security_env_t *env,
+											   u8 ** data,size_t* size)
+{
+	sc_apdu_t apdu;
+	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8 *p=sbuf;
+	int r;
+
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+
+	assert(card != NULL && env != NULL);
+
+	switch (env->operation) {
+	case SC_SEC_OPERATION_DECIPHER:
+	case SC_SEC_OPERATION_SIGN:
+		 sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0, 0);
+		 apdu.p1 = 0x41;
+		 apdu.p2 = 0xB8;
+		 *p++ = 0x80;
+		 *p++ = 0x01;
+		 *p++ = 0x80;
+		 *p++ = 0x83;
+		 *p++ = 0x02;
+		 *p++ = env->key_ref[0];
+		 *p++ = 0x22;
+		 if(*size>1024/8)
+		 {
+			  if(*size == 2048/8)
+			  {
+				   *p++ = 0x89;
+				   *p++ = 0x40;
+				   memcpy(p,*data,0x40);
+				   p+=0x40;
+				   *data+=0x40;
+				   *size-=0x40;
+			  }
+			  else
+			  {
+				   SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_INVALID_ARGUMENTS);
+			  }
+		 }
+		 break;
+	default:
+		 SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_INVALID_ARGUMENTS);
+	}
+
+	apdu.le = 0;
+	apdu.lc = apdu.datalen = p - sbuf;
+	apdu.data = sbuf;
+	apdu.resplen = 0;
+
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
+	return sc_check_sw(card, apdu.sw1, apdu.sw2);
+}
+
+static int entersafe_set_security_env(sc_card_t *card,
+									  const sc_security_env_t *env,
+									  int se_num)
+{
+	 assert(card);
+	 assert(env);
+
+	 SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+
+	 if(card->drv_data){
+		  free(card->drv_data);
+		  card->drv_data=0;
+	 }
+
+	 card->drv_data = calloc(1,sizeof(*env));
+	 if(!card->drv_data)
+		  SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_OUT_OF_MEMORY);
+
+	 memcpy(card->drv_data,env,sizeof(*env));
+	 SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_SUCCESS);
+}
+
+
+static int entersafe_compute_with_prkey(sc_card_t *card,
+										const u8 * data, size_t datalen,
+										u8 * out, size_t outlen)
+{
+	int r;
+	sc_apdu_t apdu;
+	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8* p=sbuf;
+	size_t size = datalen;
+
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+
+	if(!data)
+		 SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE,SC_ERROR_INVALID_ARGUMENTS);
+
+	memcpy(p,data,size);
+
+	if(!card->drv_data)
+		 SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE,SC_ERROR_INTERNAL);
+
+	r = entersafe_internal_set_security_env(card,card->drv_data,&p,&size);
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "internal set security env failed");
+   
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT, 0x2A, 0x86,0x80);
+	apdu.data=p;
+	apdu.lc = size;
+	apdu.datalen = size;
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+	apdu.le = 256;
+
+	r = entersafe_transmit_apdu(card, &apdu,0,0,0,0);
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
+
+	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
+		size_t len = apdu.resplen > outlen ? outlen : apdu.resplen;
+		memcpy(out, apdu.resp, len);
+		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, len);
+	}
+	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, sc_check_sw(card, apdu.sw1, apdu.sw2));
+}
+
+static int entersafe_decipher(sc_card_t *card,
+							  const u8 * crgram, size_t crgram_len,
+							  u8 * out, size_t outlen)
+{
+	 SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+	 return entersafe_compute_with_prkey(card,crgram,crgram_len,out,outlen);
+}
+
+static int entersafe_compute_signature(sc_card_t *card,
+									   const u8 * data, size_t datalen,
+									   u8 * out, size_t outlen)
+{
+	 SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+	 return entersafe_compute_with_prkey(card,data,datalen,out,outlen);
+}
+
 static struct sc_card_driver * sc_get_driver(void)
 {
 	struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
@@ -397,6 +543,12 @@ static struct sc_card_driver * sc_get_driver(void)
 	entersafe_ops.read_binary	= entersafe_read_binary;
 	entersafe_ops.write_binary	= NULL;
 	entersafe_ops.update_binary	= entersafe_update_binary;
+
+	/* iso7816-8 functions */
+	entersafe_ops.restore_security_env = entersafe_restore_security_env;
+	entersafe_ops.set_security_env  = entersafe_set_security_env;
+	entersafe_ops.decipher = entersafe_decipher;
+	entersafe_ops.compute_signature = entersafe_compute_signature;
 
 	return &entersafe_drv;
 }
