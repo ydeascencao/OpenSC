@@ -181,6 +181,10 @@ enum {
 	SC_CARD_TYPE_IASECC_GEMALTO,
 	SC_CARD_TYPE_IASECC_OBERTHUR,
 	SC_CARD_TYPE_IASECC_SAGEM,
+
+	/* ENTERSAFE TEST cards ----- MODIFICADO */
+	SC_CARD_TYPE_ENTERSAFE_BASE = 26000,
+	SC_CARD_TYPE_ENTERSAFE_FTCOS,
 };
 
 extern sc_card_driver_t *sc_get_default_driver(void);
@@ -214,6 +218,10 @@ extern sc_card_driver_t *sc_get_javacard_driver(void);
 extern sc_card_driver_t *sc_get_itacns_driver(void);
 extern sc_card_driver_t *sc_get_authentic_driver(void);
 extern sc_card_driver_t *sc_get_iasecc_driver(void);
+
+/* AGREGAR EL NUEVO DRIVER */
+extern sc_card_driver_t *sc_get_entersafe_test_driver(void);
+/***************************/
 
 #ifdef __cplusplus
 }
